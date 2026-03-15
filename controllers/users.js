@@ -3,6 +3,8 @@ let bcrypt = require('bcrypt')
 let jwt = require('jsonwebtoken')
 let fs = require('fs')
 
+const privateKey = fs.readFileSync('./keys/private.pem', 'utf8');
+
 module.exports = {
     CreateAnUser: async function (username, password, email, role, fullName, avatarUrl, status, loginCount) {
         let newItem = new userModel({
@@ -45,7 +47,8 @@ module.exports = {
             if (bcrypt.compareSync(password, user.password)) {
                 return jwt.sign({
                     id: user.id
-                }, 'secret', {
+                }, privateKey, {
+                    algorithm: 'RS256',
                     expiresIn: '1d'
                 })
             } else {
@@ -54,5 +57,19 @@ module.exports = {
         } else {
             return false;
         }
+    },
+    ChangePassword: async function (userId, oldPassword, newPassword) {
+        let user = await userModel.findById(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+        if (!bcrypt.compareSync(oldPassword, user.password)) {
+            throw new Error("Old password is incorrect");
+        }
+        let salt = bcrypt.genSaltSync(10);
+        let hashedNewPassword = bcrypt.hashSync(newPassword, salt);
+        user.password = hashedNewPassword;
+        await user.save();
+        return { message: "Password changed successfully" };
     }
 }

@@ -2,7 +2,7 @@ var express = require("express");
 var router = express.Router();
 let bcrypt = require('bcrypt')
 let userModel = require("../schemas/users");
-let { validatedResult, CreateAnUserValidator, ModifyAnUserValidator } = require('../utils/validator')
+let { validatedResult, CreateAnUserValidator, ModifyAnUserValidator, ChangePasswordValidator } = require('../utils/validator')
 let userController = require('../controllers/users')
 let {CheckLogin} = require('../utils/authHandler')
 
@@ -62,6 +62,19 @@ router.delete("/:id", async function (req, res, next) {
       return res.status(404).send({ message: "id not found" });
     }
     res.send(updatedItem);
+  } catch (err) {
+    res.status(400).send({ message: err.message });
+  }
+});
+
+router.put("/changepassword", CheckLogin, ChangePasswordValidator, validatedResult, async function (req, res, next) {
+  try {
+    let result = await userController.ChangePassword(
+      req.user._id,
+      req.body.oldPassword,
+      req.body.newPassword
+    );
+    res.send(result);
   } catch (err) {
     res.status(400).send({ message: err.message });
   }
